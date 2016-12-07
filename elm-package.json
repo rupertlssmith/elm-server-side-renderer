@@ -1,6 +1,6 @@
 {
     "version": "2.0.0",
-    "summary": "hServer side Html rendering with Elm.",
+    "summary": "Server side Html rendering with Elm.",
     "repository": "https://github.com/rupertlssmith/elm-server-side-renderer.git",
     "license": "BSD3",
     "source-directories": [
