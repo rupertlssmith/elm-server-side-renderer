@@ -2,7 +2,7 @@
         
 ### Static Programs
         
-Provides some 'static' program types for Elm, for running server side rendering. A server side rendering is a function from a model to a view. Typically, the view is Html Never that is then rendered as a String.
+This project provides some 'static' program types for Elm, for running server side rendering. A server side rendering is a function from a model to a view. Typically, the view is Html Never that is then rendered as a String. The type Html Never is used, as this is a static renderer and the Html it produces should not create events for Elm to propagate to an 'update' function.
 
 The static program types are:
         
