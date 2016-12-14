@@ -1,13 +1,12 @@
 module TeaTest exposing (..)
 
+import Legacy.ElmTest as ElmTest exposing (..)
 import Html
 import Html.Attributes
 import Html.Events
 import HtmlQuery exposing (..)
 import HtmlToString exposing (..)
 import String
-import Test exposing (..)
-import Expect exposing (Expectation)
 
 
 darthVader : Html.Html Msg
@@ -48,35 +47,25 @@ type SubSubMsg
 
 all : Test
 all =
-    describe "TeaTest"
+    suite "tea tests"
         [ test "should render the parent view" <|
-            \_ ->
-                (Expect.equal 1 <|
-                    List.length <|
-                        queryByTagname "p" darthVader
-                )
+            assertEqual 1 <|
+                List.length <|
+                    queryByTagname "p" darthVader
         , test "should render child views" <|
-            \_ ->
-                (Expect.equal 1 <|
-                    List.length <|
-                        queryByTagname "button" darthVader
-                )
+            assertEqual 1 <|
+                List.length <|
+                    queryByTagname "button" darthVader
         , test "should render child views of child views" <|
-            \_ ->
-                (Expect.equal 1 <|
-                    List.length <|
-                        queryByTagname "span" darthVader
-                )
+            assertEqual 1 <|
+                List.length <|
+                    queryByTagname "span" darthVader
         , test "should work when Html.map a empty div" <|
-            \_ ->
-                (Expect.equal 1 <|
-                    List.length <|
-                        queryByClassname "force" darthVader
-                )
+            assertEqual 1 <|
+                List.length <|
+                    queryByClassname "force" darthVader
         , test "should work when Html.map a text node" <|
-            \_ ->
-                (Expect.equal True <|
-                    String.contains "Han shot first" <|
-                        htmlToString darthVader
-                )
+            assertEqual True <|
+                String.contains "Han shot first" <|
+                    htmlToString darthVader
         ]

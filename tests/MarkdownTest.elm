@@ -5,17 +5,16 @@ import ServerSide.InternalTypes exposing (..)
 import ServerSide.Helpers exposing (..)
 import ServerSide.Markdown exposing (..)
 import HtmlQuery exposing (..)
+import Legacy.ElmTest as ElmTest exposing (..)
 import Html
 import Html.Attributes exposing (id)
 import Markdown
 import Dict
-import Test exposing (..)
-import Expect exposing (Expectation)
 
 
-assertEqualPair : ( a, a ) -> Expectation
+assertEqualPair : ( a, a ) -> Assertion
 assertEqualPair ( left, right ) =
-    Expect.equal left right
+    assertEqual left right
 
 
 emptyBlock : Html.Html msg
@@ -83,23 +82,17 @@ fullBlockWithAttrsDecoded =
 
 nodeTests : Test
 nodeTests =
-    describe "MarkdownTest"
+    suite "Node tests"
         [ test "empty markdown are empty as a string" <|
-            \_ ->
-                (assertEqualPair ( emptyBlockAsString, htmlToString emptyBlock ))
+            assertEqualPair ( emptyBlockAsString, htmlToString emptyBlock )
         , test "empty markdown are decoded to empty custom nodes" <|
-            \_ ->
-                (assertEqualPair ( emptyBlockDecoded, nodeTypeFromHtml emptyBlock ))
+            assertEqualPair ( emptyBlockDecoded, nodeTypeFromHtml emptyBlock )
         , test "full markdown are full as a string" <|
-            \_ ->
-                (assertEqualPair ( fullBlockAsString, htmlToString fullBlock ))
+            assertEqualPair ( fullBlockAsString, htmlToString fullBlock )
         , test "full markdown are decoded to full custom nodes" <|
-            \_ ->
-                (assertEqualPair ( fullBlockDecoded, nodeTypeFromHtml fullBlock ))
+            assertEqualPair ( fullBlockDecoded, nodeTypeFromHtml fullBlock )
         , test "attributes have no effect on the model" <|
-            \_ ->
-                (assertEqualPair ( fullBlockAsString, htmlToString fullBlockWithAttrs ))
+            assertEqualPair ( fullBlockAsString, htmlToString fullBlockWithAttrs )
         , test "markdown preserves attributes as facts" <|
-            \_ ->
-                (assertEqualPair ( fullBlockWithAttrsDecoded, nodeTypeFromHtml fullBlockWithAttrs ))
+            assertEqualPair ( fullBlockWithAttrsDecoded, nodeTypeFromHtml fullBlockWithAttrs )
         ]

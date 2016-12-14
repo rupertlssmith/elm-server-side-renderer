@@ -1,28 +1,24 @@
 module BasicTests exposing (..)
 
--- where
-
 import HtmlToString exposing (..)
 import ServerSide.InternalTypes exposing (..)
 import ServerSide.Helpers exposing (..)
 import HtmlQuery exposing (..)
+import Legacy.ElmTest as ElmTest exposing (..)
 import Html
 import Html.Attributes
 import Html.Events
+import Html.Keyed as Keyed
 import Dict
 import String
 import Json.Encode
-import Test exposing (..)
-import Expect exposing (Expectation)
-import Test.Runner as Runner
 import MarkdownTest
 import TeaTest
 
 
 -- DATA
+
 -- Empty things
-
-
 emptyText : String
 emptyText =
     ""
@@ -67,6 +63,7 @@ emptyDivWithClick =
         []
 
 
+inputText : Json.Encode.Value
 inputText =
     Json.Encode.object
         [ ( "target"
@@ -134,12 +131,12 @@ emptyDivWithAttributeDecoded =
 
 emptyDivWithManyAttributes : Html.Html msg
 emptyDivWithManyAttributes =
-    -- Html.div
-    --     [ Html.Attributes.class "dog"
-    --     , Html.Attributes.value "cat"
-    --     , Html.Attributes.width 50
-    --     ]
-    --     []
+    --Html.div
+    --    [ Html.Attributes.class "dog"
+    --    , Html.Attributes.value "cat"
+    --    , Html.Attributes.width 50
+    --    ]
+    --[]
     emptyDiv
         |> addAttribute (Html.Attributes.class "dog")
         |> addAttribute (Html.Attributes.value "cat")
@@ -149,7 +146,7 @@ emptyDivWithManyAttributes =
 emptyDivWithManyAttributesAsString : String
 emptyDivWithManyAttributesAsString =
     String.trim """
-<div class="dog" value="cat"></div>
+<div class="dog" value="cat" width="50"></div>
     """
 
 
@@ -165,8 +162,8 @@ emptyDivWithManyAttributesDecoded =
                     Dict.fromList
                         [ ( "className", "dog" )
                         , ( "value", "cat" )
+                        , ( "width", "50" )
                         ]
-                , attributes = Just (Json.Encode.object [ ( "width", Json.Encode.string "50" ) ])
             }
         }
 
@@ -192,6 +189,21 @@ emptyDivWithStyleDecoded =
                 | styles =
                     Dict.fromList [ ( "color", "red" ) ]
             }
+        }
+
+
+emptyKeyedNode : Html.Html msg
+emptyKeyedNode =
+    Keyed.ul [] []
+
+
+emptyKeyedUlDecoded : NodeType
+emptyKeyedUlDecoded =
+    NodeEntry
+        { tag = "ul"
+        , children = []
+        , descendantsCount = 0
+        , facts = emptyFacts
         }
 
 
@@ -275,6 +287,51 @@ twoChildFormDecoded =
             }
 
 
+keyedNodeWithText : Html.Html msg
+keyedNodeWithText =
+    Keyed.ul [] [ ( "0", Html.text "Hello!" ) ]
+
+
+keyedNodeWithTextDecoded : NodeType
+keyedNodeWithTextDecoded =
+    NodeEntry
+        { tag = "ul"
+        , children = [ TextTag { text = "Hello!" } ]
+        , descendantsCount = 1
+        , facts = emptyFacts
+        }
+
+
+keyedNodeOneChild : Html.Html msg
+keyedNodeOneChild =
+    keyedNodeWithChildren 1
+
+
+keyedNodeOneChildDecoded : NodeType
+keyedNodeOneChildDecoded =
+    keyedNodeWithChildrenDecoded 1
+
+
+keyedNodeTwoChildren : Html.Html msg
+keyedNodeTwoChildren =
+    keyedNodeWithChildren 2
+
+
+keyedNodeTwoChildrenDecoded : NodeType
+keyedNodeTwoChildrenDecoded =
+    keyedNodeWithChildrenDecoded 2
+
+
+keyedNodeOneKeyedChild : Html.Html msg
+keyedNodeOneKeyedChild =
+    keyedNodeWithKeyedChildren 1
+
+
+keyedNodeTwoKeyedChildren : Html.Html msg
+keyedNodeTwoKeyedChildren =
+    keyedNodeWithKeyedChildren 2
+
+
 
 -- HELPERS
 
@@ -289,9 +346,9 @@ textFromHtml =
     Html.text >> htmlToString
 
 
-assertEqualPair : ( a, a ) -> Expectation
+assertEqualPair : ( a, a ) -> Assertion
 assertEqualPair ( left, right ) =
-    Expect.equal left right
+    assertEqual left right
 
 
 countDescendents : NodeType -> Int
@@ -308,63 +365,115 @@ countDescendents nodeType =
 
 
 
+{-| creates a keyed `ul` with `n` children (`li`). -}
+keyedNodeWithChildren : Int -> Html.Html msg
+keyedNodeWithChildren childrenCount =
+    let
+        liWithText val =
+            ( toString val, Html.li [] [ Html.text (toString val) ] )
+    in
+        Keyed.ul [] <|
+            List.map liWithText (List.range 1 childrenCount)
+
+
+
+{-| creates a decoded keyed `ul` with `n` children (`li`). -}
+keyedNodeWithChildrenDecoded : Int -> NodeType
+keyedNodeWithChildrenDecoded childrenCount =
+    let
+        liWithTextDecoded val =
+            NodeEntry
+                { tag = "li"
+                , children = [ TextTag { text = val } ]
+                , descendantsCount = 1
+                , facts = emptyFacts
+                }
+    in
+        NodeEntry
+            { tag = "ul"
+            , children = List.map (toString >> liWithTextDecoded) (List.range 1 childrenCount)
+            , descendantsCount = childrenCount * 2
+            , facts = emptyFacts
+            }
+
+
+
+{-| creates a keyed `ul` with `n` keyed children (`li`) -}
+keyedNodeWithKeyedChildren : Int -> Html.Html msg
+keyedNodeWithKeyedChildren childrenCount =
+    let
+        liWithText val =
+            ( toString val, Keyed.node "li" [] [ ( "1", Html.text (toString val) ) ] )
+    in
+        Keyed.ul [] <|
+            List.map liWithText (List.range 1 childrenCount)
+
+
+
 -- TESTS
 
 
 textTests : Test
 textTests =
-    concat
+    suite "Text tests"
         [ test "empty strings are empty results" <|
-            \_ -> assertEqualPair ( emptyText, textFromHtml emptyText )
+            assertEqualPair ( emptyText, textFromHtml emptyText )
         , test "empty strings are decoded to empty text tags" <|
-            \_ -> assertEqualPair ( emptyTextDecoded, textTagTypeFromString emptyText )
+            assertEqualPair ( emptyTextDecoded, textTagTypeFromString emptyText )
         , test "non empty strings are non empty results" <|
-            \_ -> assertEqualPair ( nonEmptyText, textFromHtml nonEmptyText )
+            assertEqualPair ( nonEmptyText, textFromHtml nonEmptyText )
         , test "non strings are decoded to non text tags" <|
-            \_ -> assertEqualPair ( nonEmptyTextDecoded, textTagTypeFromString nonEmptyText )
+            assertEqualPair ( nonEmptyTextDecoded, textTagTypeFromString nonEmptyText )
         ]
 
 
 nodeTests : Test
 nodeTests =
-    concat
+    suite "Node tests"
         [ test "empty divs are empty divs as a string" <|
-            \_ ->
-                assertEqualPair ( emptyDivAsString, htmlToString emptyDiv )
+            assertEqualPair ( emptyDivAsString, htmlToString emptyDiv )
         , test "empty divs are decoded to empty div nodes" <|
-            \_ ->
-                assertEqualPair ( emptyDivDecoded, nodeTypeFromHtml emptyDiv )
+            assertEqualPair ( emptyDivDecoded, nodeTypeFromHtml emptyDiv )
         , test "empty divs are empty divs as a string" <|
-            \_ ->
-                assertEqualPair ( emptyDivWithAddedAttributeAsString, htmlToString emptyDivWithAddedAttribute )
+            assertEqualPair ( emptyDivWithAddedAttributeAsString, htmlToString emptyDivWithAddedAttribute )
         , test "empty divs are decoded to empty div nodes" <|
-            \_ ->
-                assertEqualPair ( emptyDivWithAddedAttributeDecoded, nodeTypeFromHtml emptyDivWithAddedAttribute )
+            assertEqualPair ( emptyDivWithAddedAttributeDecoded, nodeTypeFromHtml emptyDivWithAddedAttribute )
+        , test "empty keyed ul is decoded to empty ul node" <|
+            assertEqualPair ( emptyKeyedUlDecoded, nodeTypeFromHtml emptyKeyedNode )
         , test "empty divs with classes get classes as a string" <|
-            \_ ->
-                assertEqualPair ( emptyDivWithAttributeAsString, htmlToString emptyDivWithAttribute )
+            assertEqualPair ( emptyDivWithAttributeAsString, htmlToString emptyDivWithAttribute )
         , test "empty divs with classes are decoded to empty div nodes with classes" <|
-            \_ -> assertEqualPair ( emptyDivWithAttributeDecoded, nodeTypeFromHtml emptyDivWithAttribute )
+            assertEqualPair ( emptyDivWithAttributeDecoded, nodeTypeFromHtml emptyDivWithAttribute )
         , test "empty divs with many attributes get attributes as a string" <|
-            \_ -> assertEqualPair ( emptyDivWithManyAttributesAsString, htmlToString emptyDivWithManyAttributes )
+            assertEqualPair ( emptyDivWithManyAttributesAsString, htmlToString emptyDivWithManyAttributes )
         , test "empty divs with many attributes are decoded to empty div nodes with attributes" <|
-            \_ -> assertEqualPair ( emptyDivWithManyAttributesDecoded, nodeTypeFromHtml emptyDivWithManyAttributes )
+            assertEqualPair ( emptyDivWithManyAttributesDecoded, nodeTypeFromHtml emptyDivWithManyAttributes )
         , test "empty divs with styles get styles as a string" <|
-            \_ -> assertEqualPair ( emptyDivWithStyleAsString, htmlToString emptyDivWithStyle )
+            assertEqualPair ( emptyDivWithStyleAsString, htmlToString emptyDivWithStyle )
         , test "empty divs with styles are decoded to empty div nodes with styles" <|
-            \_ -> assertEqualPair ( emptyDivWithStyleDecoded, nodeTypeFromHtml emptyDivWithStyle )
+            assertEqualPair ( emptyDivWithStyleDecoded, nodeTypeFromHtml emptyDivWithStyle )
         , test "divs with one non-empty text node are just a div with text" <|
-            \_ -> assertEqualPair ( oneChildDivAsString, htmlToString oneChildDiv )
+            assertEqualPair ( oneChildDivAsString, htmlToString oneChildDiv )
         , test "divs with one non-empty text node are decoded to just a div with text" <|
-            \_ -> assertEqualPair ( oneChildDivDecoded, nodeTypeFromHtml oneChildDiv )
+            assertEqualPair ( oneChildDivDecoded, nodeTypeFromHtml oneChildDiv )
         , test "spans with one non-empty text node are just a span with text" <|
-            \_ -> assertEqualPair ( oneChildSpanAsString, htmlToString oneChildSpan )
+            assertEqualPair ( oneChildSpanAsString, htmlToString oneChildSpan )
         , test "spans with one non-empty text node are decoded to just a span with text" <|
-            \_ -> assertEqualPair ( oneChildSpanDecoded, nodeTypeFromHtml oneChildSpan )
+            assertEqualPair ( oneChildSpanDecoded, nodeTypeFromHtml oneChildSpan )
         , test "forms with two non-empty text children are just a form with text" <|
-            \_ -> assertEqualPair ( twoChildFormAsString, htmlToString twoChildForm )
+            assertEqualPair ( twoChildFormAsString, htmlToString twoChildForm )
         , test "forms with two non-empty text children are decoded to just a form with text" <|
-            \_ -> assertEqualPair ( twoChildFormDecoded, nodeTypeFromHtml twoChildForm )
+            assertEqualPair ( twoChildFormDecoded, nodeTypeFromHtml twoChildForm )
+        , test "ul with a child text node" <|
+            assertEqualPair ( keyedNodeWithTextDecoded, nodeTypeFromHtml keyedNodeWithText )
+        , test "ul with one non-empty child is decoded" <|
+            assertEqualPair ( keyedNodeOneChildDecoded, nodeTypeFromHtml keyedNodeOneChild )
+        , test "ul with two non-empty children are decoded" <|
+            assertEqualPair ( keyedNodeTwoChildrenDecoded, nodeTypeFromHtml keyedNodeTwoChildren )
+        , test "ul with one non-empty keyed child is decoded" <|
+            assertEqualPair ( keyedNodeOneChildDecoded, nodeTypeFromHtml keyedNodeOneKeyedChild )
+        , test "ul with two non-empty keyed children are decoded" <|
+            assertEqualPair ( keyedNodeTwoChildrenDecoded, nodeTypeFromHtml keyedNodeTwoKeyedChildren )
         ]
 
 
@@ -384,78 +493,72 @@ queryTests =
         p3 =
             Html.p [ Html.Attributes.class "foo bar moo" ] []
     in
-        concat
+        suite "Query tests"
             [ test "query by tagname returns an empty list if no matches" <|
-                \_ ->
-                    assertEqualPair ( [], queryByTagname "img" emptyDiv )
+                assertEqualPair ( [], queryByTagname "img" emptyDiv )
             , test "query by tagname finds a node" <|
-                \_ ->
-                    assertEqualPair
-                        ( [ nodeTypeFromHtml emptyDiv ]
-                        , queryByTagname "div" emptyDiv
-                        )
+                assertEqualPair
+                    ( [ nodeTypeFromHtml emptyDiv ]
+                    , queryByTagname "div" emptyDiv
+                    )
+            , test "query by tagname finds a keyed node" <|
+                assertEqualPair
+                    ( [ nodeTypeFromHtml emptyKeyedNode ]
+                    , queryByTagname "ul" emptyKeyedNode
+                    )
             , test "query finds all nodes by tagname" <|
-                \_ ->
-                    assertEqualPair
-                        ( [ nodeTypeFromHtml emptyP
-                          , nodeTypeFromHtml emptyP
-                          ]
-                        , queryByTagname "p" (Html.div [] [ emptyP, emptyP ])
-                        )
+                assertEqualPair
+                    ( [ nodeTypeFromHtml emptyP
+                      , nodeTypeFromHtml emptyP
+                      ]
+                    , queryByTagname "p" (Html.div [] [ emptyP, emptyP ])
+                    )
             , test "query by id returns an empty list if no matches" <|
-                \_ ->
-                    assertEqualPair
-                        ( []
-                        , queryById "myId" (Html.div [] [ emptyP, emptyP ])
-                        )
+                assertEqualPair
+                    ( []
+                    , queryById "myId" (Html.div [] [ emptyP, emptyP ])
+                    )
             , test "query by id finds a node" <|
-                \_ ->
-                    assertEqualPair
-                        ( [ nodeTypeFromHtml p1 ]
-                        , queryById "myP" (Html.div [] [ p1 ])
-                        )
+                assertEqualPair
+                    ( [ nodeTypeFromHtml p1 ]
+                    , queryById "myP" (Html.div [] [ p1 ])
+                    )
             , test "query by classname returns an empty list if no matches" <|
-                \_ ->
-                    assertEqualPair
-                        ( []
-                        , queryByClassname "my-class" (Html.div [] [ emptyP, emptyP ])
-                        )
+                assertEqualPair
+                    ( []
+                    , queryByClassname "my-class" (Html.div [] [ emptyP, emptyP ])
+                    )
             , test "query by class finds a node" <|
-                \_ ->
-                    assertEqualPair
-                        ( [ nodeTypeFromHtml p1 ]
-                        , queryByClassname "my-class" (Html.div [] [ p1, emptyP ])
-                        )
+                assertEqualPair
+                    ( [ nodeTypeFromHtml p1 ]
+                    , queryByClassname "my-class" (Html.div [] [ p1, emptyP ])
+                    )
             , test "query by class finds all nodes" <|
-                \_ ->
-                    assertEqualPair
-                        ( [ nodeTypeFromHtml p1, nodeTypeFromHtml p2 ]
-                        , queryByClassname "my-class" (Html.div [] [ p1, p2, p3 ])
-                        )
+                assertEqualPair
+                    ( [ nodeTypeFromHtml p1, nodeTypeFromHtml p2 ]
+                    , queryByClassname "my-class" (Html.div [] [ p1, p2, p3 ])
+                    )
             , test "query by attribute finds all nodes" <|
-                \_ ->
-                    assertEqualPair
-                        ( [ emptyDivWithManyAttributesDecoded ]
-                        , queryByAttribute "value" "cat" (Html.div [] [ p1, emptyDivWithManyAttributes, p3 ])
-                        )
+                assertEqualPair
+                    ( [ emptyDivWithManyAttributesDecoded ]
+                    , queryByAttribute "width" "50" (Html.div [] [ p1, emptyDivWithManyAttributes, p3 ])
+                    )
             , test "query by classlist returns an empty list if no matches" <|
-                \_ ->
-                    assertEqualPair
-                        ( []
-                        , queryByClassList [ "foo", "nope" ] (Html.div [] [ p1, p2, p3 ])
-                        )
+                assertEqualPair
+                    ( []
+                    , queryByClassList [ "foo", "nope" ] (Html.div [] [ p1, p2, p3 ])
+                    )
             , test "query by classlist finds all nodes" <|
-                \_ ->
-                    assertEqualPair
-                        ( [ nodeTypeFromHtml p3 ]
-                        , queryByClassList [ "foo", "moo" ] (Html.div [] [ p1, p2, p3 ])
-                        )
+                assertEqualPair
+                    ( [ nodeTypeFromHtml p3 ]
+                    , queryByClassList [ "foo", "moo" ] (Html.div [] [ p1, p2, p3 ])
+                    )
             ]
 
 
 allTests : Test
 allTests =
-    describe "BasicTests"
+    suite "Html rendering"
         [ textTests
         , nodeTests
         , queryTests
@@ -464,8 +567,6 @@ allTests =
         ]
 
 
-
--- I think maybe not needed with the latest elm-test
--- main : Program Never
--- main =
---     Runner.run <| Runner.fromTest 1 0 allTests
+main : Program Never () msg
+main =
+    runSuite allTests
