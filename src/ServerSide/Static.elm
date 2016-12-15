@@ -37,7 +37,7 @@ htmlToStringProgram : { init : Value -> Html Never } -> StringProgram
 htmlToStringProgram program =
     let
         init_ input =
-            Debug.log "static" (htmlToString <| program.init input)
+            htmlToString <| program.init input
     in
         Native.ServerSidePrograms.programWithFlags
             { init = init_
