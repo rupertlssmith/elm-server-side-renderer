@@ -3,6 +3,9 @@ var _rupertlssmith$elm_server_side_renderer$Native_ServerSidePrograms = function
         return function(flagDecoder) {
             return function(object, moduleName) {
                 object['program'] = function program(flags) {
+                    console.log("flags:");
+                    console.log(flags);
+
                     if (typeof flagDecoder === 'undefined') {
                         throw new Error(
                             'Are you trying to sneak a Never value into Elm? Trickster!\n' +
