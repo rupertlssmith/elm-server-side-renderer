@@ -1,5 +1,5 @@
 {
-    "version": "2.0.6",
+    "version": "2.0.7",
     "summary": "Server side Html rendering with Elm.",
     "repository": "https://github.com/rupertlssmith/elm-server-side-renderer.git",
     "license": "BSD3",

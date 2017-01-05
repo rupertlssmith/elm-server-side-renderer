@@ -7,6 +7,7 @@ import Json.Decode
 import ServerSide.Constants exposing (..)
 import ServerSide.Helpers exposing (..)
 import ServerSide.InternalTypes exposing (..)
+import Native.Markdown
 
 
 emptyFacts : Facts
@@ -89,7 +90,6 @@ nodeRecordToString { tag, children, facts } =
                 |> List.map (\( k, v ) -> k ++ "=" ++ (String.toLower <| toString v))
                 |> String.join " "
                 |> Just
-
     in
         String.join ""
             [ openTag [ classes, styles, stringOthers, boolOthers ]
@@ -113,7 +113,7 @@ nodeTypeToString nodeType =
             ""
 
         MarkdownNode record ->
-            record.model.markdown
+            Native.Markdown.render record.model
 
         NoOp ->
             ""
