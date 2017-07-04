@@ -1,4 +1,13 @@
-module ServerSide.Static exposing (..)
+module ServerSide.Static
+    exposing
+        ( HtmlProgram
+        , JsonProgram
+        , StringProgram
+        , htmlToStringProgram
+        , htmlProgram
+        , jsonProgram
+        , stringProgram
+        )
 
 import Html exposing (Html)
 import Json.Encode exposing (Value)
@@ -25,14 +34,11 @@ type alias StringProgram =
     Program Value String Never
 
 
-
-{-
+{-|
    Takes an init function which produces Html Never from some Json input, and turns
    it into a StringProgram by applying 'htmlToString' to the result of the init
    function.
 -}
-
-
 htmlToStringProgram : { init : Value -> Html Never } -> StringProgram
 htmlToStringProgram program =
     let
@@ -44,3 +50,42 @@ htmlToStringProgram program =
             , subscriptions = \_ -> Sub.none
             , update = \_ -> \model -> ( model, Cmd.none )
             }
+
+
+{-|
+   Takes an init function which produces Html Never from some Json input, and
+   returns a static HtmlProgram.
+-}
+htmlProgram : { init : Value -> Html Never } -> HtmlProgram
+htmlProgram program =
+    Native.ServerSidePrograms.programWithFlags
+        { init = program.init
+        , subscriptions = \_ -> Sub.none
+        , update = \_ -> \model -> ( model, Cmd.none )
+        }
+
+
+{-|
+   Takes an init function which produces Html Never from some Json input, and
+   returns a static JsonProgram.
+-}
+jsonProgram : { init : Value -> Value } -> JsonProgram
+jsonProgram program =
+    Native.ServerSidePrograms.programWithFlags
+        { init = program.init
+        , subscriptions = \_ -> Sub.none
+        , update = \_ -> \model -> ( model, Cmd.none )
+        }
+
+
+{-|
+   Takes an init function which produces Html Never from some Json input, and
+   returns a static StringProgram.
+-}
+stringProgram : { init : Value -> String } -> StringProgram
+stringProgram program =
+    Native.ServerSidePrograms.programWithFlags
+        { init = program.init
+        , subscriptions = \_ -> Sub.none
+        , update = \_ -> \model -> ( model, Cmd.none )
+        }
